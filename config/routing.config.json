@@ -1,0 +1,10 @@
+{
+  "constants" : {
+    "#lb3" : "http://localhost/api/v3",
+    "#lb4" : "http://localhost/api/v4"
+  },
+  "routes" : {
+    "#user_authentication" : "#lb3",
+    "#default" : "#lb3"
+  }
+}

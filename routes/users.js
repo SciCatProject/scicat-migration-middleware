@@ -1,5 +1,5 @@
 var express = require('express');
-var got = require('got');
+var request = require('superagent');
 var utils = require('../utils/utils.js');
 //var router = express.Router();
 
@@ -24,37 +24,23 @@ async function local_user_login(req, res, next, urls) {
   // check if method is correct, aka POST
   if (req.method !== 'POST') {
     // return error
-    res.status(401)
+    const error = utils.http_401_error;
+    res.status(error.statusCode)
       .json({
-        "error" : {
-          "statusCode" : 401,
-          "name" : "Error",
-          "message" : "Wrong method or authorization required",
-          "code" : "AUTHORIZATION_REQUIRED_OR_WRONG_METHOD"
-        }
+        'error' : error
       });
       next('router');
       return;
   }
   
   // login on the LB3 catamel
-  console.log('Logging in into lb3 backend. Url: ' + urls['#lb3']['#url']);
-  try {
-    const lb3_res = await got({
-      url: urls['#lb3']['#url'],
-      method: urls['#lb3']['#method'],
-      json: req.body
-    }).json()
-
-    //sa("POST","http://localhost:3000/api/v3/Users/login").send({"username": "admin", "password": "veIKtDrHHqlDEZL51bbpo2XCDYvcMmu"}).then(res => {res10 = res})
-    
-  } catch(e) { 
-    console.log(e);
-    res.status(e.response.statusCode)
-      .send(e.response.body);
-    next('router');
-    return;
-  }
+  console.log('Logging in into lb3 backend. Connection arguments: ' + JSON.stringify(urls['#lb3']));
+  const lb3_response = await request(urls['#lb3']['#method'],urls['#lb3']['#url'])
+      .send(req.body)
+      .then(utils.backend_success_callback)
+      .catch(utils.backend_response_error_callback);
+  /*
+  */
   /*
    * successful login
    * >
@@ -92,31 +78,28 @@ async function local_user_login(req, res, next, urls) {
    */
   
   // check if lb3 login was successful 
-  if (lb3_res.statusCode !== 200) {
+  if (lb3_response.statusCode !== 200) {
     // login failed on lb3
     // returning error
-    res.status(lb3_res.statusCode)
-    .json(lb3_res.json())
+    res.status(lb3_response.statusCode)
+      .send(lb3_response.text);
+    next('route');
+    return;
   }
   
   // if we got here we are ready to login on lb4
   // login on the LB4 catamel
-  console.log('Logging in into lb4 backend. Url: ' + urls['#lb4']);
-  const lb4_res = await got({
-    url: urls['#lb4']['#url'],
-    method: urls['#lb4']['#method'],
-    body: res.body
-  })
+  console.log('Logging in into lb4 backend. Connection arguments: ' + JSON.stringify(urls['#lb4']));
+  const lb4_response = await request(urls['#lb4']['#method'],urls['#lb4']['#url'])
+    .send(req.body)
+    .then(utils.backend_success_callback)
+    .catch(utils.backend_response_error_callback);
 
   // check if login in lb4 is successful
-  var lb4_token = "<failed-login>";
-  if (lb4_res.statusCode === 200) {
-    // retrieve the token
-    lb4_token = lb4_res.json()['token'];
-  }
+  var lb4_token = (lb4_response.statusCode === 200 ? lb4_token = lb4_response.json()['token'] : "<failed-login>");
 
   // lb4 token to user reply
-  user_reply = lb3_res.json();
+  var user_reply = lb3_response.body;
   user_reply.id = user_reply.id + "~" + lb4_token;
 
   // return token to user
@@ -124,7 +107,27 @@ async function local_user_login(req, res, next, urls) {
 }
 
 
-function ldap_user_login(req, res, next) {
+async function ldap_user_login(req, res, next, urls) {
+  console.log('Ldap user login');
+
+  // check if method is correct, aka POST
+  if (req.method !== 'POST') {
+    const error = utils.http_401_error;
+    // return error
+    res.status(error.statusCode)
+      .json({
+        'error' : error
+      });
+      next('router');
+      return;
+  }
+  
+  // login on the LB3 catamel
+  console.log('Logging in into lb3 backend. Connection arguments: ' + JSON.stringify(urls['#lb3']));
+  const lb3_response = await request(urls['#lb3']['#method'],urls['#lb3']['#url'])
+    .send(req.body)
+    .then(utils.backend_success_callback)
+    .catch(utils.backend_response_error_callback);
 
   /*
    * successful login on ldap account
@@ -147,8 +150,34 @@ function ldap_user_login(req, res, next) {
    * 
    *  {"access_token":"0PApDnADFIPFKop16pFS6FVU2l0obPczrkDxkBt50lm4fEnRoA9DA1HczBDbu0BZ","userId":"60784f6d6f88b06bbee53817"}
    */ 
-  console.log('Ldap user login');
-  res.send('Ldap user login');
+
+  // check if lb3 login was successful 
+  if (lb3_response.statusCode !== 200) {
+    // login failed on lb3
+    // returning error
+    res.status(lb3_response.statusCode)
+      .send(lb3_response.text);
+    next('route');
+    return;
+  }
+    
+  // if we got here we are ready to login on lb4
+  // login on the LB4 catamel
+  console.log('Logging in into lb4 backend. Connection arguments: ' + JSON.stringify(urls['#lb4']));
+  const lb4_response = await request(urls['#lb4']['#method'],urls['#lb4']['#url'])
+    .send(req.body)
+    .then(utils.backend_success_callback)
+    .catch(utils.backend_response_error_callback);
+  
+  // check if login in lb4 is successful
+  var lb4_token = (lb4_response.statusCode === 200 ? lb4_token = lb4_response.json()['token'] : "<failed-login>");
+  
+  // lb4 token to user reply
+  var user_reply = lb3_response.body;
+  user_reply.access_token = user_reply.access_token + "~" + lb4_token;
+  
+  // return token to user
+  res.status(200).json(user_reply);
 }
 
 function user_logout(req, res, next) {

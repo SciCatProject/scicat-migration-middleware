@@ -26,12 +26,12 @@
         "#path" : "/auth/msad",
         "#backend" : {
           "#lb3" : {
-            "url" : "https://scicat.ess.eu/auth/msad",
-            "method" : "POST"
+            "#url" : "https://scicat.ess.eu/auth/msad",
+            "#method" : "POST"
           },
           "#lb4" : {
-            "url" : "",
-            "method" : ""
+            "#url" : "",
+            "#method" : ""
           }
         }
       },
@@ -39,12 +39,12 @@
         "#path" : "/Users/logout",
         "#backend" : {
           "#lb3" : {
-            "url" : "https://testcatanieservice.esss.dk:32491/api/v3/Users/logout",
-            "method" : "POST"
+            "#url" : "https://testcatanieservice.esss.dk:32491/api/v3/Users/logout",
+            "#method" : "POST"
           },
           "#lb4" : {
-            "url" : "",
-            "method" : ""
+            "#url" : "",
+            "#method" : ""
           }
         }
       }

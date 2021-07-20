@@ -1,5 +1,38 @@
 var got = require('got');
 
+
+/*
+ * generic error
+ */
+const http_501_error = {
+  statusCode: 501,
+  name: "Error",
+  message: "Internal Server Error",
+  code: "INTERNAL_SERVER_ERROR"
+}
+
+const http_401_error = {
+  "statusCode" : 401,
+  "name" : "Error",
+  "message" : "Wrong method or authorization required",
+  "code" : "AUTHORIZATION_REQUIRED_OR_WRONG_METHOD"
+}
+
+function backend_response_error_callback(lerr) {
+  console.log(http_501_error.statusCode + " " + lerr.message);
+  return {
+    ok: false,
+    text: JSON.stringify(http_501_error),
+    body: http_501_error,
+    status: http_501_error.statusCode,
+    statusCode: http_501_error.statusCode
+  };
+}
+
+function backend_success_callback(lres,) {
+  console.log(lres.status + " " + lres.text);
+  return lres;
+}
 /*
  * function to substitute the constants in the value passed
  */
@@ -51,11 +84,5 @@ function sconcat() {
   return output;
 }
 
-/*
- * wrapper function to accept method as parameter when calling got
- */
-function got() {
-  
-}
 
-module.exports = {expand_route, get_value, reg_exp_from_string, sconcat};
+module.exports = {http_501_error, http_401_error, backend_response_error_callback, backend_success_callback, expand_route, get_value, reg_exp_from_string, sconcat};

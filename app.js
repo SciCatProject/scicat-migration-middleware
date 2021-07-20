@@ -24,9 +24,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 /*
  * load configuration from file
  */
+console.log('Loading config');
 const config = JSON.parse(fs.readFileSync('./config/routing.config.json').toString());
+console.log(config);
 
-app.use('/users', usersRouter);
+app.use('/', usersRouter(config));
 app.use('/', mainRouter(config));
 
 // catch 404 and forward to error handler
@@ -45,4 +47,5 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-module.exports = app;
+//module.exports = app;
+app.listen(config['configuration']['listening-port'])

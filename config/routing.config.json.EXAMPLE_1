@@ -1,7 +1,4 @@
 {
-  "configuration" : {
-    "listening-port" : 3001
-  },
   "constants" : {
     "#lb3" : "http://localhost:3000/api/v3",
     "#lb4" : "http://localhost:3000/api/v4"
@@ -13,7 +10,7 @@
         "#path" : "/Users/login",
         "#backend" : {
           "#lb3" : {
-            "#url" : "http://localhost:3000/api/v3/Users/login",
+            "#url" : "https://scicat.ess.eu/api/v3/Users/login",
             "#method" : "POST"
           },
           "#lb4" :{

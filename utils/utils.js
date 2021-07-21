@@ -30,13 +30,13 @@ function backend_response_error_callback(lerr) {
 }
 
 function backend_success_callback(lres,) {
-  console.log(lres.status + " " + lres.text);
+  console.log(lres.status + " " + lres.text.substring(0,50));
   return lres;
 }
 /*
  * function to substitute the constants in the value passed
  */
-function expand_route(value,constants) {
+function expand(value,constants) {
   return ( value in constants ? constants[value] : value);
 }
 
@@ -84,5 +84,50 @@ function sconcat() {
   return output;
 }
 
+/*
+ * extract authorization token from request object
+ */
+function getAuthorization(req) {
+  /*
+   * this function return the lb3 and lb4 authorization tokens
+   * [lb3_token, lb4_token] = getAuthorization(req)
+   */
+  // first check if we have authorization header
+  // than it checks if we have an access_token in the query
+  const [lb3_token, lb4_token] = (
+    "authentication" in req.headers
+    ? req.headers.authorization.replace(/^Bearer /,'').split("~")
+    : (
+      "access_token" in req.query
+      ? req.query.access_token.split("~")
+      : ["",""]
+    )
+  );
+  return {
+    '#lb3': lb3_token,
+    '#lb4': lb4_token
+  }
+}
 
-module.exports = {http_501_error, http_401_error, backend_response_error_callback, backend_success_callback, expand_route, get_value, reg_exp_from_string, sconcat};
+/* 
+ * return the authorization object to inject on the backend request header
+ */
+function prepAuthorization(auth, req) {
+  // retrieve the authorization tokens
+  const tokens = getAuthorization(req);
+  switch (auth[1]) {
+    case 'Legacy':
+      return {
+        'Authorization' : tokens[auth[0]]
+      }
+      break;
+    case 'Bearer':
+      return {
+        'Authorization' : 'Bearer ' + tokens[auth[0]]
+      }
+      break;
+  }
+  return {}
+}
+
+module.exports = {http_501_error, http_401_error, backend_response_error_callback, backend_success_callback, expand, get_value, reg_exp_from_string, sconcat, getAuthorization, prepAuthorization};

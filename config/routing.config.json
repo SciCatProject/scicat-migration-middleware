@@ -3,8 +3,14 @@
     "listening-port" : 3001
   },
   "constants" : {
-    "#lb3" : "http://localhost:3000/api/v3",
-    "#lb4" : "http://localhost:3000/api/v4"
+    "urls" : {
+      "#lb3" : "http://localhost:3000/api/v3",
+      "#lb4" : "http://localhost:3000/api/v4"
+    },
+    "auth" : {
+      "#lb3" : "Legacy",
+      "#lb4" : "Bearer"
+    }
   },
   "routes" : {
     "Logbooks" : "#lb4",
@@ -39,7 +45,7 @@
         "#path" : "/Users/logout",
         "#backend" : {
           "#lb3" : {
-            "#url" : "https://testcatanieservice.esss.dk:32491/api/v3/Users/logout",
+            "#url" : "http://localhost:3000/api/v3/Users/logout",
             "#method" : "POST"
           },
           "#lb4" : {

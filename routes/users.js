@@ -88,15 +88,18 @@ async function local_user_login(req, res, next, urls) {
   }
   
   // if we got here we are ready to login on lb4
-  // login on the LB4 catamel
-  console.log('Logging in into lb4 backend. Connection arguments: ' + JSON.stringify(urls['#lb4']));
-  const lb4_response = await request(urls['#lb4']['#method'],urls['#lb4']['#url'])
-    .send(req.body)
-    .then(utils.backend_success_callback)
-    .catch(utils.backend_response_error_callback);
+  var lb4_token = '<no-lb4-backend>';
+  if (urls['#lb4']['#url']) {
+    // login on the LB4 catamel
+    console.log('Logging in into lb4 backend. Connection arguments: ' + JSON.stringify(urls['#lb4']));
+    const lb4_response = await request(urls['#lb4']['#method'],urls['#lb4']['#url'])
+      .send(req.body)
+      .then(utils.backend_success_callback)
+      .catch(utils.backend_response_error_callback);
 
-  // check if login in lb4 is successful
-  var lb4_token = (lb4_response.statusCode === 200 ? lb4_token = lb4_response.json()['token'] : "<failed-login>");
+    // check if login in lb4 is successful
+    lb4_token = (lb4_response.statusCode === 200 ? lb4_token = lb4_response.json()['token'] : "<failed-login>");
+  }
 
   // lb4 token to user reply
   var user_reply = lb3_response.body;
@@ -162,15 +165,18 @@ async function ldap_user_login(req, res, next, urls) {
   }
     
   // if we got here we are ready to login on lb4
-  // login on the LB4 catamel
-  console.log('Logging in into lb4 backend. Connection arguments: ' + JSON.stringify(urls['#lb4']));
-  const lb4_response = await request(urls['#lb4']['#method'],urls['#lb4']['#url'])
-    .send(req.body)
-    .then(utils.backend_success_callback)
-    .catch(utils.backend_response_error_callback);
+  var lb4_token = '<no-lb4-backend>';
+  if (urls['#lb4']['#url']) {
+    // login on the LB4 catamel
+    console.log('Logging in into lb4 backend. Connection arguments: ' + JSON.stringify(urls['#lb4']));
+    const lb4_response = await request(urls['#lb4']['#method'],urls['#lb4']['#url'])
+      .send(req.body)
+      .then(utils.backend_success_callback)
+      .catch(utils.backend_response_error_callback);
   
-  // check if login in lb4 is successful
-  var lb4_token = (lb4_response.statusCode === 200 ? lb4_token = lb4_response.json()['token'] : "<failed-login>");
+    // check if login in lb4 is successful
+    lb4_token = (lb4_response.statusCode === 200 ? lb4_token = lb4_response.json()['token'] : "<failed-login>");
+  }
   
   // lb4 token to user reply
   var user_reply = lb3_response.body;
@@ -180,9 +186,92 @@ async function ldap_user_login(req, res, next, urls) {
   res.status(200).json(user_reply);
 }
 
-function user_logout(req, res, next) {
+async function user_logout(req, res, next, urls) {
   console.log('User logout');
-  res.send('User logout');
+
+  // check if method is correct, aka POST
+  if (req.method !== 'POST') {
+    const error = utils.http_401_error;
+    // return error
+    res.status(error.statusCode)
+      .json({
+        'error' : error
+      });
+      next('router');
+      return;
+  }
+  
+  /*
+   * this is the structure of the request that we are expecting
+   *
+   * http://localhost:3000/api/v3/Users/logout?access_token=qO8PkuKRcny7PTxAMx9mAUpAxXJzvWn4QkEZIahDBcrbl2kXeP97g5OYePqjWIGd
+   * 
+   * the access_token should countins the lb3 and lb4 tokens separated by ~
+   * 
+   */
+  const request_token = req.query.access_token;
+  const [lb3_token,lb4_token] = request_token.split('~');
+
+   /* 
+   * > curl -i -X POST -H 'Content-type: application/json'  http://localhost:3000/api/v3/Users/logout?access_token=DDGoeQbN0QM05awhLcQdkTbiJco3dRz7oC8xk7XODHwPM07ul0tUm1Koi4sbBIEW
+   * HTTP/1.1 204 No Content
+   * Vary: Origin, Accept-Encoding
+   * Access-Control-Allow-Credentials: true
+   * X-XSS-Protection: 1; mode=block
+   * X-Frame-Options: SAMEORIGIN
+   * Strict-Transport-Security: max-age=0; includeSubDomains
+   * X-Download-Options: noopen
+   * X-Content-Type-Options: nosniff
+   * Content-Type: application/json; charset=utf-8
+   * Date: Wed, 21 Jul 2021 09:35:32 GMT
+   * Connection: keep-alive
+   * Keep-Alive: timeout=5
+   * 
+   *
+   * lb3 returns 204 when logout request is successful
+   */
+  // login on the LB3 catamel
+  console.log('Logging out from lb3 backend. Connection arguments: ' + JSON.stringify(urls['#lb3']));
+  const lb3_response = await request(urls['#lb3']['#method'],urls['#lb3']['#url'])
+    .set('Content-Type','application/json')
+    .query({
+      access_token : lb3_token
+    })
+    .then(utils.backend_success_callback)
+    .catch(utils.backend_response_error_callback);
+  
+  // check if lb3 login was successful 
+  if (lb3_response.statusCode !== 204) {
+    // login failed on lb3
+    // returning error
+    res.status(lb3_response.statusCode)
+      .send(lb3_response.text);
+    next('route');
+    return;
+  }
+    
+  // if we got here we are ready to login on lb4
+  var lb4_logout = false; 
+  if (urls['#lb4']['#url'] && !lb4_token.startsWith('<')) {
+    // login on the LB4 catamel
+    console.log('Logging out from lb4 backend. Connection arguments: ' + JSON.stringify(urls['#lb4']));
+    const lb4_response = await request(urls['#lb4']['#method'],urls['#lb4']['#url'])
+      .set('Content-Type','application/json')
+      .query({
+        access_token : lb3_token
+      })
+      .then(utils.backend_success_callback)
+      .catch(utils.backend_response_error_callback);
+  
+    // check if login in lb4 is successful
+    lb4_logout = lb4_response.statusCode === 200;
+  }
+
+  res.status(204).send((
+    lb3_respone.statusCode===204 && lb4_logout 
+    ? 'logout successful' 
+    : 'logout partially successful'
+  ));
 }
 
 function config_user_routes(config) {
@@ -199,7 +288,7 @@ function config_user_routes(config) {
   const local_user_logout_path = utils.reg_exp_from_string(
     utils.sconcat( 
       '^', 
-      utils.get_value( config, ['routes', '#user-authentication', '#user-logot', '#path'] )));
+      utils.get_value( config, ['routes', '#user-authentication', '#user-logout', '#path'] )));
   console.log('Local user login path : ' + local_local_user_login_path);
   console.log('Ldap user login path : ' + local_ldap_user_login_path);
   console.log('User logout path : ' + local_user_logout_path);

@@ -25,7 +25,8 @@ function backend_response_error_callback(lerr) {
     text: JSON.stringify(http_501_error),
     body: http_501_error,
     status: http_501_error.statusCode,
-    statusCode: http_501_error.statusCode
+    statusCode: http_501_error.statusCode,
+    full_error: lerr
   };
 }
 
@@ -95,7 +96,7 @@ function getAuthorization(req) {
   // first check if we have authorization header
   // than it checks if we have an access_token in the query
   const [lb3_token, lb4_token] = (
-    "authentication" in req.headers
+    "authorization" in req.headers
     ? req.headers.authorization.replace(/^Bearer /,'').split("~")
     : (
       "access_token" in req.query
@@ -115,17 +116,19 @@ function getAuthorization(req) {
 function prepAuthorization(auth, req) {
   // retrieve the authorization tokens
   const tokens = getAuthorization(req);
-  switch (auth[1]) {
-    case 'Legacy':
-      return {
-        'Authorization' : tokens[auth[0]]
-      }
-      break;
-    case 'Bearer':
-      return {
-        'Authorization' : 'Bearer ' + tokens[auth[0]]
-      }
-      break;
+  if ( tokens[auth[0]] ) {
+    switch ( auth[1] ) {
+      case 'Legacy' :
+        return {
+          'Authorization' : tokens[auth[0]]
+        }
+        break;
+      case 'Bearer' :
+        return {
+          'Authorization' : 'Bearer ' + tokens[auth[0]]
+        }
+        break;
+    }
   }
   return {}
 }

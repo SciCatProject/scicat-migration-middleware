@@ -7,8 +7,22 @@ User login and logout is done on both backend and the authorization token return
 
 
 ## Manual testing
-At the time of this writing, the test suite has not being created yet.
+At the time of this writing, the test suite has not being created yet. WE are not sure if we are not going to ever create it.
 We have done manual testing using local instances of the backends.
+
+The test folder contains a bash script which spin up two instances of catamel on different ports but sharing the same database.
+Once the two backends are running, S2M will be started with the the test configuration config/routing.config.TEST_1.
+At this point, user can manually test that S2M can distribute requests according to the configuration, which should be matching the following schema:
+- Proposals -> backend running on port 3002
+- all other requests -> backend running on port 3001
+
+S2M should run on port 3000, so catanie can run with the default configuration.
+
+Test can be done manually using ther curl command in a  terminal or using scicat frontend catanie.
+The file test_commands.md contains all teh tests that have been run duirng our testing, together with the results.
+
+
+## Older testing - as of 2021/07/
 The list below is not completed and it will be updated as we progress with our testing.
 
 If you would like to test this app manually on your local environment, you need to have an instance of scicat lb3 running and also a lb4 one.

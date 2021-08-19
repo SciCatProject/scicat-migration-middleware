@@ -1,6 +1,5 @@
 var got = require('got');
 
-
 /*
  * generic error
  */
@@ -19,13 +18,18 @@ const http_401_error = {
 }
 
 function backend_response_error_callback(lerr) {
-  console.log(http_501_error.statusCode + " " + lerr.message);
+  const user_error = (
+    lerr.response.statusCode == 401 
+    ? http_401_error
+    : http_501_error
+  )
+  console.log(user_error.statusCode + " " + lerr.message);
   return {
     ok: false,
-    text: JSON.stringify(http_501_error),
-    body: http_501_error,
-    status: http_501_error.statusCode,
-    statusCode: http_501_error.statusCode,
+    text: JSON.stringify(user_error),
+    body: user_error,
+    status: user_error.statusCode,
+    statusCode: user_error.statusCode,
     full_error: lerr
   };
 }
@@ -115,7 +119,7 @@ function getAuthorization(req) {
  */
 function prepAuthorization(auth, req) {
   // retrieve the authorization tokens
-  const tokens = getAuthorization(req);
+  const tokens = getAuthTokensFromRequest(req);
   if ( tokens[auth[0]] ) {
     switch ( auth[1] ) {
       case 'Legacy' :
@@ -124,8 +128,14 @@ function prepAuthorization(auth, req) {
         }
         break;
       case 'Bearer' :
+      case 'Bearer JWT' :
         return {
           'Authorization' : 'Bearer ' + tokens[auth[0]]
+        }
+        break;
+      case 'JWT':
+        return {
+          'Authorization' : 'JWT ' + tokens[auth[0]]
         }
         break;
     }
@@ -133,4 +143,44 @@ function prepAuthorization(auth, req) {
   return {}
 }
 
-module.exports = {http_501_error, http_401_error, backend_response_error_callback, backend_success_callback, expand, get_value, reg_exp_from_string, sconcat, getAuthorization, prepAuthorization};
+/*
+ * encode auth tokens to send to the user
+ */
+function prepAuthTokensForUser(auth) {
+  return encodeURIComponent(
+    JSON.stringify(
+      auth
+    )
+  )
+}
+
+/*
+ * extract auth tokens prepared with prepAuthTokensForUser from user request
+ */
+function getAuthTokensFromRequest(req) {
+  const token = (
+    "authorization" in req.headers
+    ? req.headers.authorization.replace(/^Bearer /,'').replace(/^JWT /,'')
+    : (
+      "access_token" in req.query
+      ? req.query.access_token
+      : encodeURIComponent("{}")
+    )
+  );
+  return JSON.parse(decodeURIComponent(token));
+}
+
+module.exports = {
+  http_501_error, 
+  http_401_error, 
+  backend_response_error_callback, 
+  backend_success_callback, 
+  expand, 
+  get_value, 
+  reg_exp_from_string, 
+  sconcat, 
+  getAuthorization, 
+  prepAuthorization,
+  prepAuthTokensForUser,
+  getAuthTokensFromRequest
+};

@@ -3,7 +3,7 @@ var request = require('superagent');
 var utils = require('../utils/utils.js');
 //var router = express.Router();
 
-async function local_user_login(req, res, next, urls) {
+async function local_user_login(req, res, next, urls, main_login) {
   //
   // this function is run when we receive a login request as a local user
   // if successful, we should return the following reply
@@ -32,15 +32,17 @@ async function local_user_login(req, res, next, urls) {
       next('router');
       return;
   }
-  
-  // login on the LB3 catamel
-  console.log('Logging in into lb3 backend. Connection arguments: ' + JSON.stringify(urls['#lb3']));
-  const lb3_response = await request(urls['#lb3']['#method'],urls['#lb3']['#url'])
+
+  // main login
+  console.log('Main Log : ' + main_login);
+  console.log('Connection arguments: ' + JSON.stringify(urls[main_login]));
+  const main_response = await request(
+        urls[main_login]['#method'],
+        urls[main_login]['#url'])
       .send(req.body)
       .then(utils.backend_success_callback)
       .catch(utils.backend_response_error_callback);
-  /*
-  */
+  
   /*
    * successful login
    * >
@@ -77,43 +79,56 @@ async function local_user_login(req, res, next, urls) {
    * }
    */
   
-  // check if lb3 login was successful 
-  if (lb3_response.statusCode !== 200) {
-    // login failed on lb3
+  // check if main login was successful 
+  if (main_response.statusCode !== 200) {
+    // main login failed
     // returning error
-    res.status(lb3_response.statusCode)
-      .send(lb3_response.text);
+    res.status(main_response.statusCode)
+      .send(main_response.text);
     next('route');
     return;
   }
-  
-  // if we got here we are ready to login on lb4
-  var lb4_token = '<no-lb4-backend>';
-  if (urls['#lb4']['#url']) {
-    // login on the LB4 catamel
-    console.log('Logging in into lb4 backend. Connection arguments: ' + JSON.stringify(urls['#lb4']));
-    const lb4_response = await request(urls['#lb4']['#method'],urls['#lb4']['#url'])
-      .send(req.body)
-      .then(utils.backend_success_callback)
-      .catch(utils.backend_response_error_callback);
 
-    // check if login in lb4 is successful
-    lb4_token = (
-      lb4_response.statusCode === 200 
-      ? lb4_token = lb4_response.body.id 
-      : "<failed-login>");
-  }
+  // get main login token field and prepares the array where to store the tokens
+  const main_token_field = utils.get_value(urls,[ main_login, 'token-field' ]);
+  var tokens = [];
 
+  // iterate on all defined login backends and login in each one of them
+  // skip main login
+  Object.keys(urls).forEach( be => {
+    if (be !== main_login) {
+      // login on the LB4 catamel
+      console.log('Logging in into ' + be + 'backend');
+      console.log('Connection arguments: ' + JSON.stringify(urls[be]));
+      const be_response = request(urls[be]['#method'],urls[be]['#url'])
+        .send(req.body)
+        .then(utils.backend_success_callback)
+        .catch(utils.backend_response_error_callback);
+
+      // check if login in lb4 is successful
+      tokens[be] = (
+        be_response.statusCode === 200 
+        ? be_response.body[urls[be]["#token-field"]]
+        : "<failed-login>");
+    }
+  })
   // lb4 token to user reply
-  var user_reply = lb3_response.body;
-  user_reply.id = user_reply.id + "~" + lb4_token;
+  var user_reply = main_response.body;
+  tokens[main_login] = user_reply[main_token_field];
+  /*
+   * this was the first implementation. I will try using standard javascript functions
+   * var full_token = '';
+   * Object.keys(tokens).forEach(k => { full_token += k + "=" + tokens[k] + "~" });
+   * user_reply[main_token_field] = full_token.substring(0,full_string.length-1);
+   */
+  user_reply[main_token_field] = utils.prepAuthTokensForUser(tokens);
 
   // return token to user
   res.status(200).json(user_reply);
 }
 
 
-async function ldap_user_login(req, res, next, urls) {
+async function ldap_user_login(req, res, next, urls, main_login) {
   console.log('Ldap user login');
 
   // check if method is correct, aka POST
@@ -127,14 +142,17 @@ async function ldap_user_login(req, res, next, urls) {
       next('router');
       return;
   }
-  
-  // login on the LB3 catamel
-  console.log('Logging in into lb3 backend. Connection arguments: ' + JSON.stringify(urls['#lb3']));
-  const lb3_response = await request(urls['#lb3']['#method'],urls['#lb3']['#url'])
+
+  // main login
+  console.log('Main Log : ' + main_login);
+  console.log('Connection arguments: ' + JSON.stringify(urls[main_login]));
+  const main_response = await request(
+         urls[main_login]['#method'],
+         urls[main_login]['#url'])
     .send(req.body)
     .then(utils.backend_success_callback)
     .catch(utils.backend_response_error_callback);
-
+  
   /*
    * successful login on ldap account
    * 
@@ -158,41 +176,48 @@ async function ldap_user_login(req, res, next, urls) {
    */ 
 
   // check if lb3 login was successful 
-  if (lb3_response.statusCode !== 200) {
+  if (main_response.statusCode !== 200) {
     // login failed on lb3
     // returning error
-    res.status(lb3_response.statusCode)
-      .send(lb3_response.text);
+    res.status(main_response.statusCode)
+      .send(main_response.text);
     next('route');
     return;
   }
     
-  // if we got here we are ready to login on lb4
-  var lb4_token = '<no-lb4-backend>';
-  if (urls['#lb4']['#url']) {
-    // login on the LB4 catamel
-    console.log('Logging in into lb4 backend. Connection arguments: ' + JSON.stringify(urls['#lb4']));
-    const lb4_response = await request(urls['#lb4']['#method'],urls['#lb4']['#url'])
-      .send(req.body)
-      .then(utils.backend_success_callback)
-      .catch(utils.backend_response_error_callback);
+  // get main login token field and prepares the array where to store the tokens
+  const main_token_field = utils.get_value(urls,[ main_login, 'token-field' ]);
+  var tokens = [];
   
-    // check if login in lb4 is successful
-    lb4_token = (
-      lb4_response.statusCode === 200 
-      ? lb4_token = lb4_response.body.access_token  
-      : "<failed-login>");
-  }
+  // iterate on all defined login backends and login in each one of them
+  // skip main login
+  Object.keys(urls).forEach(async be => {
+    if (be !== main_login) {
+      // login on the LB4 catamel
+      console.log('Logging in into ' + be + 'backend');
+      console.log('Connection arguments: ' + JSON.stringify(urls[be]));
+      const be_response = await request(urls[be]['#method'],urls[be]['#url'])
+        .send(req.body)
+        .then(utils.backend_success_callback)
+        .catch(utils.backend_response_error_callback);
   
-  // lb4 token to user reply
-  var user_reply = lb3_response.body;
-  user_reply.access_token = user_reply.access_token + "~" + lb4_token;
+      // check if login in lb4 is successful
+      tokens[be] = (
+        be_response.statusCode === 200 
+        ? be_response.body[urls[be]["#token_field"]]
+        : "<failed-login>");
+    }
+  })
+  // prepare tokens
+  var user_reply = main_response.body;
+  tokens[main_login] = user_reply[main_token_field];
+  user_reply[main_token_field] = utils.prepAuthTokensForUser(tokens);
   
   // return token to user
   res.status(200).json(user_reply);
 }
 
-async function user_logout(req, res, next, urls) {
+async function user_logout(req, res, next, urls, backends) {
   console.log('User logout');
 
   // check if method is correct, aka POST
@@ -216,9 +241,14 @@ async function user_logout(req, res, next, urls) {
    * 
    */
   console.log('Extracting access token...');
-  const lb3_auth = utils.prepAuthorization(urls['#lb3']['#auth'],req);
-  const lb4_auth = utils.prepAuthorization(urls['#lb4']['#auth'],req);
-
+  /*
+   * var auth = [];
+   * backends.forEach(be => {
+   *   auth[be] = utils.prepAuthorization(url[be]['#auth'],req);
+   * })
+   */
+   const auth = utils.getAuthTokensFromRequest(req);
+  
 
    /* 
    * > curl -i -X POST -H 'Content-type: application/json'  http://localhost:3000/api/v3/Users/logout?access_token=DDGoeQbN0QM05awhLcQdkTbiJco3dRz7oC8xk7XODHwPM07ul0tUm1Koi4sbBIEW
@@ -238,41 +268,31 @@ async function user_logout(req, res, next, urls) {
    *
    * lb3 returns 204 when logout request is successful
    */
-  // logout on the LB3 catamel
-  console.log('Logging out from lb3 backend. Connection arguments: ' + JSON.stringify(urls['#lb3']));
-  const lb3_response = await request(urls['#lb3']['#method'],urls['#lb3']['#url'])
-    .set('Content-Type','application/json')
-    .set(lb3_auth)
-    .then(utils.backend_success_callback)
-    .catch(utils.backend_response_error_callback);
-  
-  // check if lb3 login was successful 
-  if (lb3_response.statusCode !== 204) {
-    // login failed on lb3
-    // returning error
-    res.status(lb3_response.statusCode)
-      .send(lb3_response.text);
-    next('route');
-    return;
-  }
-    
-  // if we got here we are ready to logout on lb4
-  var lb4_logout = false; 
-  if ( urls['#lb4']['#url'] && !lb4_auth['Authorization'].match(/\<.+\>/) ) {
-    // login on the LB4 catamel
-    console.log('Logging out from lb4 backend. Connection arguments: ' + JSON.stringify(urls['#lb4']));
-    const lb4_response = await request(urls['#lb4']['#method'],urls['#lb4']['#url'])
-      .set('Content-Type','application/json')
-      .set(lb4_auth)
-      .then(utils.backend_success_callback)
-      .catch(utils.backend_response_error_callback);
-  
-    // check if login in lb4 is successful
-    lb4_logout = lb4_response.statusCode === 204;
-  }
 
+  // loggin out from all the backends
+  console.log('Logging out from all backends');
+  var be_logout_errors = 0;
+  backends.forEach(async be => {
+    console.log("Logging out from " + be );
+    console.log('Connection arguments: ' + JSON.stringify(urls[be]));
+
+    if ( urls[be]['#url'] && !auth[be]['Authorization'].match(/\<.+\>/) ) {
+  
+      const be_response = await request(urls[be]['#method'],urls[be]['#url'])
+        .set('Content-Type','application/json')
+        .set(auth[be])
+        .then(utils.backend_success_callback)
+        .catch(utils.backend_response_error_callback);
+
+      // check if logout was successful 
+      be_logout_errors += (response.statusCode !== 204) ? 1 : 0;
+
+    }
+
+  });
+  
   res.status(204).send((
-    lb3_response.statusCode===204 && lb4_logout 
+    be_logout_errors == 0
     ? 'logout successful' 
     : 'logout partially successful'
   ));
@@ -307,7 +327,10 @@ function config_user_routes(config) {
   const local_local_user_login_url = utils.get_value(config, [ 'routes', '#user-authentication', '#local-user-login', '#backend']);
   const local_ldap_user_login_url = utils.get_value(config, [ 'routes', '#user-authentication', '#ldap-user-login', '#backend']);
   var local_user_logout_url = utils.get_value(config, [ 'routes', '#user-authentication', '#user-logout', '#backend']);
-  ['#lb3', '#lb4'].forEach( (k) => { 
+  const local_backends = utils.get_value(config,["configuration", "backends"]);
+  const local_main_login = utils.get_value(config,["configuration", "main-login"]);
+  const local_secondary_login = local_backends.filter(item => item !== local_main_login);
+  local_backends.forEach( (k) => { 
     local_user_logout_url[k]['#auth'] = [k, utils.get_value(config, [ 'constants', 'auth', k ])];
   });
 
@@ -324,11 +347,11 @@ function config_user_routes(config) {
 
     // select which user functionality the user wants
     if (endpoint.match(local_user_login_path)) {
-      await local_user_login(req,res,next,local_local_user_login_url)
+      await local_user_login(req,res,next,local_local_user_login_url,local_main_login);
     } else if (endpoint.match(ldap_user_login_path)) {
-      await ldap_user_login(req,res,next,local_ldap_user_login_url)
+      await ldap_user_login(req,res,next,local_ldap_user_login_url,local_main_login);
     } else if (endpoint.match(user_logout_path)) {
-      await user_logout(req,res,next,local_user_logout_url)
+      await user_logout(req,res,next,local_user_logout_url,local_backends);
     } else {
       // if we get here, we are in trouble
       console.log('No user routing for endpoint : ' + endpoint);

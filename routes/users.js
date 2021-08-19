@@ -80,7 +80,7 @@ async function local_user_login(req, res, next, urls, main_login) {
    */
   
   // check if main login was successful 
-  if (main_response.statusCode !== 200) {
+  if (main_response.statusCode !== utils.getSuccessStatusCode(urls[main_login])) {
     // main login failed
     // returning error
     res.status(main_response.statusCode)
@@ -90,28 +90,28 @@ async function local_user_login(req, res, next, urls, main_login) {
   }
 
   // get main login token field and prepares the array where to store the tokens
-  const main_token_field = utils.get_value(urls,[ main_login, 'token-field' ]);
-  var tokens = [];
+  var main_token_field = utils.get_value(urls,[ main_login, '#token-field' ]);
+  var tokens = {};
 
   // iterate on all defined login backends and login in each one of them
   // skip main login
-  Object.keys(urls).forEach( be => {
-    if (be !== main_login) {
+  for ( const backend of Object.keys(urls)) {
+    if (backend !== main_login) {
       // login on the LB4 catamel
-      console.log('Logging in into ' + be + 'backend');
-      console.log('Connection arguments: ' + JSON.stringify(urls[be]));
-      const be_response = request(urls[be]['#method'],urls[be]['#url'])
+      console.log('Logging in into ' + backend + ' backend');
+      console.log('Connection arguments: ' + JSON.stringify(urls[backend]));
+      var backend_response = await request(urls[backend]['#method'],urls[backend]['#url'])
         .send(req.body)
         .then(utils.backend_success_callback)
         .catch(utils.backend_response_error_callback);
 
       // check if login in lb4 is successful
-      tokens[be] = (
-        be_response.statusCode === 200 
-        ? be_response.body[urls[be]["#token-field"]]
+      tokens[backend] = (
+        backend_response.statusCode === utils.getSuccessStatusCode(urls[backend])
+        ? backend_response.body[urls[backend]["#token-field"]]
         : "<failed-login>");
     }
-  })
+  }
   // lb4 token to user reply
   var user_reply = main_response.body;
   tokens[main_login] = user_reply[main_token_field];

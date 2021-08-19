@@ -170,6 +170,10 @@ function getAuthTokensFromRequest(req) {
   return JSON.parse(decodeURIComponent(token));
 }
 
+function getSuccessStatusCode(backend_config) {
+  return ( Object.keys(backend_config).includes('#success-status-code') ? backend_config['#success-status-code'] : 200);
+}
+
 module.exports = {
   http_501_error, 
   http_401_error, 
@@ -182,5 +186,6 @@ module.exports = {
   getAuthorization, 
   prepAuthorization,
   prepAuthTokensForUser,
-  getAuthTokensFromRequest
+  getAuthTokensFromRequest,
+  getSuccessStatusCode
 };

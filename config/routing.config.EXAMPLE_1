@@ -1,0 +1,61 @@
+{
+  "configuration" : {
+    "listening-port" : 3001
+  },
+  "constants" : {
+    "urls" : {
+      "#lb3" : "http://localhost:3000/api/v3",
+      "#lb4" : "http://localhost:3000/api/v4"
+    },
+    "auth" : {
+      "#lb3" : "Legacy",
+      "#lb4" : "Bearer"
+    }
+  },
+  "routes" : {
+    "Logbooks" : "#lb4",
+    "#user-authentication" : {
+      "#local-user-login" : {
+        "#path" : "/Users/login",
+        "#backend" : {
+          "#lb3" : {
+            "#url" : "http://localhost:3000/api/v3/Users/login",
+            "#method" : "POST"
+          },
+          "#lb4" :{
+            "#url" : "",
+            "#method" : "POST"
+          }
+        }
+      },
+      "#ldap-user-login" : {
+        "#path" : "/auth/msad",
+        "#backend" : {
+          "#lb3" : {
+            "#url" : "https://scicat.ess.eu/auth/msad",
+            "#method" : "POST"
+          },
+          "#lb4" : {
+            "#url" : "",
+            "#method" : ""
+          }
+        }
+      },
+      "#user-logout" : {
+        "#path" : "/Users/logout",
+        "#backend" : {
+          "#lb3" : {
+            "#url" : "http://localhost:3000/api/v3/Users/logout",
+            "#method" : "POST"
+          },
+          "#lb4" : {
+            "#url" : "",
+            "#method" : ""
+          }
+        }
+      }
+    },
+    "#default" : "#lb3",
+    "#prefix-remove" : "/api/v3"
+  }
+}

@@ -2,7 +2,7 @@
   "configuration" : {
     "listening-port" : 3000,
     "backends" : [ "#lb3", "#njs" ],
-    "main-login" : "#lb3",
+    "main-login" : "#lb3"
   },
   "constants" : {
     "urls" : {
@@ -12,7 +12,7 @@
     "auth" : {
       "#lb3" : "Legacy",
       "#njs" : "Bearer JWT"
-    },
+    }
   },
   "routes" : {
     "datasets" : "#njs",
@@ -23,12 +23,14 @@
           "#lb3" : {
             "#url" : "http://localhost:3001/api/v3/Users/login",
             "#method" : "POST",
-            "#token-field" : "id"
+            "#token-field" : "id",
+            "#success-status-code" : 200
           },
           "#njs" :{
             "#url" : "http://localhost:3002/api/auth/login",
             "#method" : "POST",
-            "#token-field" : "access_token"
+            "#token-field" : "access_token",
+            "#success-status-code" : 201
           }
         }
       },
@@ -38,12 +40,14 @@
           "#lb3" : {
             "#url" : "http://localhost:3001/auth/msad",
             "#method" : "POST",
-            "#token-field" : "access_token"
+            "#token-field" : "access_token",
+            "#success-status-code" : 200
           },
           "#njs" : {
             "#url" : "http://localhost:3002/api/auth/login",
             "#method" : "POST",
-            "#access-token" : "access_token"
+            "#access-token" : "access_token",
+            "#success-status-code" : 201
           }
         }
       },

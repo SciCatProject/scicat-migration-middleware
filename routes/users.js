@@ -343,7 +343,7 @@ function config_user_routes(config) {
 
     // check the correct route
     let endpoint = (prefix_remove ? req.originalUrl.replace(prefix_remove,'') : req.originalUrl);
-    console.log('Endpoint requested : ' + endpoint);
+    console.log('User endpoint requested : ' + endpoint);
 
     // select which user functionality the user wants
     if (endpoint.match(local_user_login_path)) {

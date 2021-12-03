@@ -4,6 +4,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var fs = require('fs');
+const cors = require('cors');
 
 var mainRouter = require('./routes/routes');
 var usersRouter = require('./routes/users');
@@ -30,6 +31,11 @@ console.log(config);
 
 app.use('/', usersRouter(config));
 app.use('/', mainRouter(config));
+
+// set up cors
+app.use(cors({
+  origin: config['configuration']['cors-origin']
+}));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

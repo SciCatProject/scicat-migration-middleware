@@ -31,7 +31,7 @@ console.log(config);
 
 // set up cors
 app.use(cors({
-  origin: config['configuration']['cors-origin'] || "http://localhost:4200"
+  origin: config['configuration']['cors-origin']
 }));
 
 app.use('/', usersRouter(config));

@@ -29,13 +29,14 @@ console.log('Loading config');
 const config = JSON.parse(fs.readFileSync('./config/routing.config.json').toString());
 console.log(config);
 
+// set up cors
+app.use(cors({
+  origin: config['configuration']['cors-origin'] || "http://localhost:4200"
+}));
+
 app.use('/', usersRouter(config));
 app.use('/', mainRouter(config));
 
-// set up cors
-app.use(cors({
-  origin: config['configuration']['cors-origin']
-}));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

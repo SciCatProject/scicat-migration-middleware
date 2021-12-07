@@ -186,12 +186,12 @@ async function ldap_user_login(req, res, next, urls, main_login) {
   }
     
   // get main login token field and prepares the array where to store the tokens
-  const main_token_field = utils.get_value(urls,[ main_login, 'token-field' ]);
-  var tokens = [];
+  const main_token_field = utils.get_value(urls,[ main_login, '#token-field' ]);
+  var tokens = {};
   
   // iterate on all defined login backends and login in each one of them
   // skip main login
-  Object.keys(urls).forEach(async be => {
+  await Promise.all(Object.keys(urls).map(async be => {
     if (be !== main_login) {
       // login on the LB4 catamel
       console.log('Logging in into ' + be + 'backend');
@@ -200,14 +200,15 @@ async function ldap_user_login(req, res, next, urls, main_login) {
         .send(req.body)
         .then(utils.backend_success_callback)
         .catch(utils.backend_response_error_callback);
-  
+
       // check if login in lb4 is successful
       tokens[be] = (
-        be_response.statusCode === 200 
-        ? be_response.body[urls[be]["#token_field"]]
+        be_response.statusCode === urls[be]["#success-status-code"]
+        ? be_response.body[urls[be]["#token-field"]]
         : "<failed-login>");
     }
-  })
+  }))
+
   // prepare tokens
   var user_reply = main_response.body;
   tokens[main_login] = user_reply[main_token_field];

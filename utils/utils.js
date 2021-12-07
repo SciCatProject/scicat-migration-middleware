@@ -126,18 +126,15 @@ function prepAuthorization(auth, req) {
         return {
           'Authorization' : tokens[auth[0]]
         }
-        break;
       case 'Bearer' :
       case 'Bearer JWT' :
         return {
           'Authorization' : 'Bearer ' + tokens[auth[0]]
         }
-        break;
       case 'JWT':
         return {
           'Authorization' : 'JWT ' + tokens[auth[0]]
         }
-        break;
     }
   }
   return {}

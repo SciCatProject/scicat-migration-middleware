@@ -3,13 +3,16 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  test-dev-branch:
+  gitlab:
+    name: Build and deploy
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Run tests
-        run: |
-          cp CI/dev/dev-routing.config.json config/routing.config.json
-          
-    
+      - name: Trigger ESS pipeline
+      uses: appleboy/gitlab-ci-action@master
+      with:
+        token: ${{ secrets.TOKEN }}
+        project_id: 5167
+        ref: "main"
+        host: https://gitlab.esss.lu.se
+        debug: true

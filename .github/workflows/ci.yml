@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger ESS pipeline
-      uses: appleboy/gitlab-ci-action@master
-      with:
-        token: ${{ secrets.TOKEN }}
-        project_id: 5167
-        ref: "main"
-        host: https://gitlab.esss.lu.se
-        debug: true
+        uses: appleboy/gitlab-ci-action@master
+        with:
+          token: ${{ secrets.TOKEN }}
+          project_id: 5167
+          ref: "main"
+          host: https://gitlab.esss.lu.se
+          debug: true

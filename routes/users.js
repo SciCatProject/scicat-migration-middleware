@@ -273,24 +273,24 @@ async function user_logout(req, res, next, urls, backends) {
   // loggin out from all the backends
   console.log('Logging out from all backends');
   var be_logout_errors = 0;
-  backends.forEach(async be => {
+  await Promise.all(backends.map(async be => {
     console.log("Logging out from " + be );
     console.log('Connection arguments: ' + JSON.stringify(urls[be]));
 
-    if ( urls[be]['#url'] && !auth[be]['Authorization'].match(/\<.+\>/) ) {
+    if ( urls[be]['#url'] && !auth[be].match(/\<.+\>/) ) {
   
       const be_response = await request(urls[be]['#method'],urls[be]['#url'])
         .set('Content-Type','application/json')
-        .set(auth[be])
+        .set('Authorization', auth[be])
         .then(utils.backend_success_callback)
         .catch(utils.backend_response_error_callback);
 
       // check if logout was successful 
-      be_logout_errors += (response.statusCode !== 204) ? 1 : 0;
+      be_logout_errors += (be_response.statusCode !== 204) ? 1 : 0;
 
     }
 
-  });
+  }));
   
   res.status(204).send((
     be_logout_errors == 0

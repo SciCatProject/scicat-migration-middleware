@@ -34,7 +34,7 @@ function backend_response_error_callback(lerr) {
   };
 }
 
-function backend_success_callback(lres,) {
+function backend_success_callback(lres) {
   console.log(lres.status + " " + lres.text.substring(0,50));
   return lres;
 }

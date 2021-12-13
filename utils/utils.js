@@ -164,7 +164,8 @@ function getAuthTokensFromRequest(req) {
       : encodeURIComponent("{}")
     )
   );
-  return JSON.parse(decodeURIComponent(token));
+  // decodeURIComponent needs to be called twice for some reason, otherwise app crashes
+  return JSON.parse(decodeURIComponent(decodeURIComponent(token)));
 }
 
 function getSuccessStatusCode(backend_config) {

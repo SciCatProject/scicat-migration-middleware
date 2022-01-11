@@ -71,15 +71,14 @@ function config_routes(config) {
       delete query.access_token;
     }
 
-    let filter = {};
     if ("filter" in req.headers) {
-      filter = {filter: req.headers.filter};
+      query.filter = req.headers.filter;
+      delete req.headers.filter;
     }
 
     try {
       const request_response = await request(req.method, backend_url)
         .set(auth)
-        .set(filter)
         .query(query)
         .send(req.body);
 

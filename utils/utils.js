@@ -34,7 +34,7 @@ function backend_response_error_callback(lerr) {
   };
 }
 
-function backend_success_callback(lres,) {
+function backend_success_callback(lres) {
   console.log(lres.status + " " + lres.text.substring(0,50));
   return lres;
 }
@@ -126,18 +126,15 @@ function prepAuthorization(auth, req) {
         return {
           'Authorization' : tokens[auth[0]]
         }
-        break;
       case 'Bearer' :
       case 'Bearer JWT' :
         return {
           'Authorization' : 'Bearer ' + tokens[auth[0]]
         }
-        break;
       case 'JWT':
         return {
           'Authorization' : 'JWT ' + tokens[auth[0]]
         }
-        break;
     }
   }
   return {}
@@ -167,7 +164,8 @@ function getAuthTokensFromRequest(req) {
       : encodeURIComponent("{}")
     )
   );
-  return JSON.parse(decodeURIComponent(token));
+  // decodeURIComponent needs to be called twice for some reason, otherwise app crashes
+  return JSON.parse(decodeURIComponent(decodeURIComponent(token)));
 }
 
 function getSuccessStatusCode(backend_config) {

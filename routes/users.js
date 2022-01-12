@@ -186,12 +186,12 @@ async function ldap_user_login(req, res, next, urls, main_login) {
   }
     
   // get main login token field and prepares the array where to store the tokens
-  const main_token_field = utils.get_value(urls,[ main_login, 'token-field' ]);
-  var tokens = [];
+  const main_token_field = utils.get_value(urls,[ main_login, '#token-field' ]);
+  var tokens = {};
   
   // iterate on all defined login backends and login in each one of them
   // skip main login
-  Object.keys(urls).forEach(async be => {
+  await Promise.all(Object.keys(urls).map(async be => {
     if (be !== main_login) {
       // login on the LB4 catamel
       console.log('Logging in into ' + be + 'backend');
@@ -200,14 +200,15 @@ async function ldap_user_login(req, res, next, urls, main_login) {
         .send(req.body)
         .then(utils.backend_success_callback)
         .catch(utils.backend_response_error_callback);
-  
+
       // check if login in lb4 is successful
       tokens[be] = (
-        be_response.statusCode === 200 
-        ? be_response.body[urls[be]["#token_field"]]
+        be_response.statusCode === urls[be]["#success-status-code"]
+        ? be_response.body[urls[be]["#token-field"]]
         : "<failed-login>");
     }
-  })
+  }))
+
   // prepare tokens
   var user_reply = main_response.body;
   tokens[main_login] = user_reply[main_token_field];
@@ -272,24 +273,24 @@ async function user_logout(req, res, next, urls, backends) {
   // loggin out from all the backends
   console.log('Logging out from all backends');
   var be_logout_errors = 0;
-  backends.forEach(async be => {
+  await Promise.all(backends.map(async be => {
     console.log("Logging out from " + be );
     console.log('Connection arguments: ' + JSON.stringify(urls[be]));
 
-    if ( urls[be]['#url'] && !auth[be]['Authorization'].match(/\<.+\>/) ) {
+    if ( urls[be]['#url'] && !auth[be].match(/\<.+\>/) ) {
   
       const be_response = await request(urls[be]['#method'],urls[be]['#url'])
         .set('Content-Type','application/json')
-        .set(auth[be])
+        .set('Authorization', auth[be])
         .then(utils.backend_success_callback)
         .catch(utils.backend_response_error_callback);
 
       // check if logout was successful 
-      be_logout_errors += (response.statusCode !== 204) ? 1 : 0;
+      be_logout_errors += (be_response.statusCode !== 204) ? 1 : 0;
 
     }
 
-  });
+  }));
   
   res.status(204).send((
     be_logout_errors == 0
@@ -343,7 +344,7 @@ function config_user_routes(config) {
 
     // check the correct route
     let endpoint = (prefix_remove ? req.originalUrl.replace(prefix_remove,'') : req.originalUrl);
-    console.log('Endpoint requested : ' + endpoint);
+    console.log('User endpoint requested : ' + endpoint);
 
     // select which user functionality the user wants
     if (endpoint.match(local_user_login_path)) {

@@ -71,14 +71,21 @@ function config_routes(config) {
       delete query.access_token;
     }
 
-    const request_response = await request(req.method,backend_url)
-      .set(auth)
-      .query(query)
-      .send(req.body)
-      .then(utils.backend_success_callback)
-      .catch(utils.backend_response_error_callback);
+    if ("filter" in req.headers) {
+      query.filter = req.headers.filter;
+      delete req.headers.filter;
+    }
 
-    res.send(request_response.body);
+    try {
+      const request_response = await request(req.method, backend_url)
+        .set(auth)
+        .query(query)
+        .send(req.body);
+
+      res.status(request_response.status).send(request_response.body);
+    } catch (err) {
+      res.status(err.status).send(JSON.parse(err.response.text));
+    }
   }
 
 }

@@ -4,6 +4,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var fs = require('fs');
+const cors = require('cors');
 
 var mainRouter = require('./routes/routes');
 var usersRouter = require('./routes/users');
@@ -28,8 +29,14 @@ console.log('Loading config');
 const config = JSON.parse(fs.readFileSync('./config/routing.config.json').toString());
 console.log(config);
 
+// set up cors
+app.use(cors({
+  origin: config['configuration']['cors-origin']
+}));
+
 app.use('/', usersRouter(config));
 app.use('/', mainRouter(config));
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

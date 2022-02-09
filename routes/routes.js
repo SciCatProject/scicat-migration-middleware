@@ -84,7 +84,8 @@ function config_routes(config) {
 
       res.status(request_response.status).send(request_response.body);
     } catch (err) {
-      res.status(err.status).send(JSON.parse(err.response.text));
+      console.error(err.response.text);
+      // res.status(err.status).send(JSON.parse(err.response.text));
     }
   }
 

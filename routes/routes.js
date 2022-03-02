@@ -76,6 +76,11 @@ function config_routes(config) {
       delete req.headers.filter;
     }
 
+    if ("where" in req.headers) {
+      query.where = req.headers.where;
+      delete req.headers.where;
+    }
+
     try {
       const request_response = await request(req.method, backend_url)
         .set(auth)
